@@ -8,6 +8,10 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
+import DepositPage from './pages/DepositPage';
+import WithdrawPage from './pages/WithdrawPage';
+import TicketsPage from './pages/TicketsPage';
+import ProfilePage from './pages/ProfilePage';
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -73,6 +77,26 @@ function AppRoutes() {
       <Route path="/home" element={
         <ProtectedRoute>
           <HomePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/deposit" element={
+        <ProtectedRoute>
+          <DepositPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/withdraw" element={
+        <ProtectedRoute>
+          <WithdrawPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/tickets" element={
+        <ProtectedRoute>
+          <TicketsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <ProfilePage />
         </ProtectedRoute>
       } />
       

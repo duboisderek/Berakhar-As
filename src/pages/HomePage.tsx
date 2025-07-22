@@ -10,6 +10,7 @@ import {
   LogOut,
   User
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import LotteryGrid from '../components/LotteryGrid';
@@ -236,6 +237,20 @@ export default function HomePage() {
               <LogOut className="w-4 h-4" />
               התנתק
             </button>
+            <Link
+              to="/profile"
+              className="flex items-center gap-2 bg-blue-500/20 text-blue-100 px-4 py-2 rounded-lg hover:bg-blue-500/30 transition-all"
+            >
+              <User className="w-4 h-4" />
+              פרופיל
+            </Link>
+            <Link
+              to="/tickets"
+              className="flex items-center gap-2 bg-purple-500/20 text-purple-100 px-4 py-2 rounded-lg hover:bg-purple-500/30 transition-all"
+            >
+              <Ticket className="w-4 h-4" />
+              כרטיסים
+            </Link>
           </div>
           
           <div className="flex items-center gap-4">
@@ -264,14 +279,20 @@ export default function HomePage() {
             </div>
             <div className="text-3xl font-bold text-green-400 mb-4">₪{balance.toLocaleString()}</div>
             <div className="grid grid-cols-2 gap-2">
-              <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-all flex items-center gap-2 justify-center">
+              <Link 
+                to="/deposit"
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-all flex items-center gap-2 justify-center"
+              >
                 <Plus className="w-4 h-4" />
                 הפקד
-              </button>
-              <button className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-all flex items-center gap-2 justify-center">
+              </Link>
+              <Link 
+                to="/withdraw"
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-all flex items-center gap-2 justify-center"
+              >
                 <Minus className="w-4 h-4" />
                 משוך
-              </button>
+              </Link>
             </div>
           </motion.div>
 
