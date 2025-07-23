@@ -1,154 +1,169 @@
-# ברכה והצלחה - הלוטו הקריפטוגרפי הראשון בישראל
+# User Account Reset System
 
-## 🎯 תיאור הפרויקט
+## 🎯 Project Overview
 
-מערכת לוטו קריפטוגרפית מתקדמת הכוללת:
-- רכישת כרטיסי לוטו עם מטבעות קריפטוגרפיים
-- מערכת הפקדות ומשיכות מאובטחת
-- פאנל ניהול מתקדם למנהלים
-- ממשק משתמש בעברית עם תמיכה RTL מלאה
+A complete user management application with account reset functionality, featuring:
+- User registration with email validation
+- Secure login/logout with bcrypt password hashing
+- Account testing dashboard
+- Reset all users functionality
+- Clean, modern UI with animations
 
-## 🚀 טכנולוגיות
+## 🚀 Tech Stack
 
-- **Frontend**: React 18, TypeScript, Tailwind CSS
-- **Backend**: Supabase (PostgreSQL, Auth, RLS)
-- **Animations**: Framer Motion
-- **Testing**: Vitest, Testing Library
-- **Deployment**: Netlify
+- **Frontend**: React 18, TypeScript, Tailwind CSS, Framer Motion
+- **Backend**: Node.js, Express
+- **Database**: SQLite3
+- **Authentication**: bcrypt for password hashing
+- **UI**: Lucide React icons, responsive design
 
-## 🔧 התקנה והפעלה
+## 🔧 Installation & Setup
 
 ```bash
-# התקנת dependencies
+# Install dependencies
 npm install
 
-# הפעלת שרת פיתוח
+# Start both frontend and backend
+npm run dev:full
+
+# Or run separately:
+# Backend only
+npm run server
+
+# Frontend only  
 npm run dev
-
-# בניית הפרויקט לפרודקשן
-npm run build
-
-# הרצת בדיקות
-npm run test
-
-# הרצת בדיקות עם UI
-npm run test:ui
 ```
 
-## 🏗️ מבנה הפרויקט
+## 🏗️ Project Structure
 
 ```
-src/
-├── components/          # רכיבי UI נשלפים
-├── contexts/           # Context providers
-├── lib/               # ספריות ועזרים
-├── pages/             # דפי האפליקציה
-├── __tests__/         # בדיקות יחידה
-└── types/             # הגדרות TypeScript
+├── src/
+│   └── components/
+│       └── UserManagement.tsx    # Main UI component
+├── server/
+│   ├── index.js                  # Express server
+│   └── users.db                  # SQLite database (auto-created)
+└── package.json
 ```
 
-## 🔐 מערכת האימות
+## 🔐 Authentication System
 
-### תכונות אבטחה:
-- הצפנת סיסמאות עם bcrypt
-- בדיקת חוזק סיסמה בזמן אמת
-- נעילת חשבון לאחר 5 ניסיונות כושלים
-- מערכת איפוס סיסמה מאובטחת
-- ניהול הרשאות מבוסס תפקידים
+### Security Features:
+- **bcrypt Password Hashing**: 12 salt rounds for maximum security
+- **Email Validation**: Proper email format validation
+- **Alphanumeric Passwords**: Simple 6-20 character passwords (no special chars)
+- **SQLite Database**: Lightweight, file-based database
+- **Input Validation**: Server-side validation for all inputs
 
-### תפקידי משתמש:
-- **Client**: משתמש רגיל - רכישת כרטיסים, הפקדות/משיכות
-- **Admin**: מנהל - אישור עסקאות, ניהול משתמשים
-- **Root**: מנהל ראשי - גישה מלאה למערכת
+### Password Requirements:
+- 6-20 characters
+- Alphanumeric only (a-z, A-Z, 0-9)
+- No special characters required
 
-## 💰 מערכת הקריפטו
+## 🎯 Core Features
 
-### מטבעות נתמכים:
-- Bitcoin (BTC)
-- Ethereum (ETH)
-- USDT (ERC-20)
-- USDT (TRC-20)
+### 1. **User Registration**
+- Email format validation
+- Password strength checking
+- Duplicate email prevention
+- Instant feedback on form submission
 
-### תהליך הפקדה:
-1. בחירת מטבע קריפטוגרפי
-2. הזנת סכום
-3. העברה לכתובת הארנק המוצגת
-4. אישור מנהל
-5. עדכון יתרה
+### 2. **User Login**
+- Secure bcrypt password verification
+- Session management
+- Login timestamp tracking
+- Automatic form validation
 
-## 🎲 מערכת הלוטו
+### 3. **User Dashboard**
+- View all registered users
+- Real-time user statistics
+- Individual user deletion
+- Current user highlighting
 
-### חוקי המשחק:
-- בחירת 6 מספרים מתוך 1-37
-- עלות כרטיס: ₪50
-- הגרלות: יום ראשון וחמישי בשעה 20:00
+### 4. **Reset Functionality**
+- **Reset All Users**: Complete database cleanup
+- **Individual User Deletion**: Remove specific users
+- **Confirmation Dialogs**: Prevent accidental deletions
+- **Automatic Logout**: When current user is deleted
 
-### מבנה פרסים:
-- 6 מספרים תואמים: ג'קפוט מלא
-- 5 מספרים תואמים: ₪50,000
-- 4 מספרים תואמים: ₪5,000
-- 3 מספרים תואמים: ₪500
+## 🎨 UI Features
 
-## 👨‍💼 פאנל הניהול
+- **Responsive Design**: Works on all screen sizes
+- **Smooth Animations**: Framer Motion for polished interactions
+- **Tab Navigation**: Easy switching between functions
+- **Real-time Feedback**: Instant success/error messages
+- **Password Visibility Toggle**: Show/hide password fields
+- **Loading States**: Visual feedback during operations
+- **Modern Icons**: Lucide React icon library
 
-### תכונות מנהל:
-- **Dashboard**: סטטיסטיקות כלליות ופעולות מהירות
-- **ניהול הפקדות**: אישור/דחיית בקשות הפקדה
-- **ניהול משיכות**: עיבוד בקשות משיכה
-- **ניהול משתמשים**: עריכת פרטים, התאמת יתרות
-- **ניהול הגרלות**: יצירת הגרלות חדשות וביצוע הגרלות
+## 🔌 API Endpoints
 
-## 🧪 בדיקות
+### User Management
+- `GET /api/users` - Get all users
+- `POST /api/register` - Create new account
+- `POST /api/login` - User login
+- `DELETE /api/users/reset` - Reset all users
+- `DELETE /api/users/:id` - Delete specific user
+- `GET /api/health` - Server health check
 
-המערכת כוללת בדיקות מקיפות:
+## 🗄️ Database Schema
 
 ```bash
-# בדיקות יחידה
-npm run test
-
-# בדיקות עם כיסוי
-npm run test:coverage
-
-# בדיקות אינטראקטיביות
-npm run test:ui
+CREATE TABLE users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  last_login DATETIME
+);
 ```
 
-### סוגי בדיקות:
-- **Unit Tests**: בדיקת פונקציות בודדות
-- **Component Tests**: בדיקת רכיבי React
-- **Integration Tests**: בדיקת זרימות משתמש
-- **Security Tests**: בדיקת אבטחה ואימות
+## 🚀 Getting Started
 
-## 🌐 פריסה
+1. **Clone and Install**:
+   ```bash
+   git clone <repository>
+   cd user-account-reset-system
+   npm install
+   ```
 
-האפליקציה פרוסה ב-Netlify עם:
-- Build אוטומטי מ-Git
-- HTTPS מאובטח
-- CDN גלובלי
-- Environment variables מוגנים
+2. **Start the Application**:
+   ```bash
+   npm run dev:full
+   ```
 
-## 📱 תמיכה במכשירים
+3. **Access the App**:
+   - Frontend: http://localhost:5173
+   - Backend: http://localhost:3001
 
-- **Desktop**: Chrome, Firefox, Safari, Edge
-- **Mobile**: iOS Safari, Android Chrome
-- **Tablet**: תמיכה מלאה בטאבלטים
-- **RTL**: תמיכה מלאה בעברית וכיוון RTL
+4. **Test the Features**:
+   - Create accounts with email@domain.com format
+   - Use alphanumeric passwords (6-20 chars)
+   - Login and test the dashboard
+   - Try the reset functionality
 
-## 🔒 אבטחה
+## 🧪 Testing the System
 
-### אמצעי אבטחה:
-- Row Level Security (RLS) ב-Supabase
-- הצפנת נתונים רגישים
-- Audit logging מלא
-- Rate limiting על API calls
-- Input validation מקיף
+### Sample Test Accounts:
+```
+Email: test@example.com
+Password: test123
 
-## 📞 תמיכה וקשר
+Email: admin@company.com  
+Password: admin456
 
-- **Telegram**: @brachavehatzlacha
-- **WhatsApp**: +972-50-123-4567
-- **Email**: support@brachavehatzlacha.co.il
+Email: user@domain.org
+Password: mypass789
+```
 
-## 📄 רישיון
+## 🔧 Development Notes
 
-כל הזכויות שמורות © 2024 ברכה והצלחה
+- **Database Location**: `server/users.db` (auto-created)
+- **CORS Enabled**: Frontend can communicate with backend
+- **Error Handling**: Comprehensive error messages
+- **Validation**: Both client and server-side validation
+- **Security**: Passwords are never stored in plain text
+
+## 📝 License
+
+MIT License - Feel free to use and modify as needed.
