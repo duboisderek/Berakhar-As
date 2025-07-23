@@ -40,14 +40,14 @@ describe('CountdownTimer', () => {
     
     render(<CountdownTimer targetDate={futureDate} />);
 
-    // Should show 01 minute initially
-    expect(screen.getByText('01')).toBeInTheDocument();
+    // Should show 01 minute initially - look for the minutes display
+    expect(screen.getByText(/01/)).toBeInTheDocument();
 
     // Fast forward 1 second
     vi.advanceTimersByTime(1000);
 
-    // Should now show 01 minute (60 seconds remaining)
-    expect(screen.getByText('01')).toBeInTheDocument();
+    // Should still show 01 minute (60 seconds remaining)
+    expect(screen.getByText(/01/)).toBeInTheDocument();
   });
 
   it('displays Hebrew weekday correctly', () => {

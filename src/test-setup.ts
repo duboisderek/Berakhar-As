@@ -41,3 +41,13 @@ Object.defineProperty(global, 'crypto', {
     }),
   },
 });
+
+// Mock bcryptjs to prevent native module loading issues in tests
+vi.mock('bcryptjs', () => ({
+  default: {
+    hash: vi.fn().mockResolvedValue('$2b$12$mockedHashValue'),
+    compare: vi.fn().mockResolvedValue(true),
+  },
+  hash: vi.fn().mockResolvedValue('$2b$12$mockedHashValue'),
+  compare: vi.fn().mockResolvedValue(true),
+}));

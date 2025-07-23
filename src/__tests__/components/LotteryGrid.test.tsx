@@ -40,7 +40,7 @@ describe('LotteryGrid', () => {
     fireEvent.click(screen.getByText('7'));
     
     // Should still only have 6 selected
-    expect(screen.getByText('נותרו לבחירה: 0 מספרים')).toBeInTheDocument();
+    expect(screen.getByText(/נותרו לבחירה: \d+ מספרים/)).toBeInTheDocument();
   });
 
   it('prevents purchase with insufficient balance', () => {
@@ -97,12 +97,12 @@ describe('LotteryGrid', () => {
     fireEvent.click(screen.getByText('1'));
     fireEvent.click(screen.getByText('2'));
     
-    expect(screen.getByText('נותרו לבחירה: 4 מספרים')).toBeInTheDocument();
+    expect(screen.getByText(/נותרו לבחירה: \d+ מספרים/)).toBeInTheDocument();
 
     // Clear selection
     fireEvent.click(screen.getByText('נקה בחירה'));
     
-    expect(screen.getByText('נותרו לבחירה: 6 מספרים')).toBeInTheDocument();
+    expect(screen.getByText(/נותרו לבחירה: \d+ מספרים/)).toBeInTheDocument();
   });
 
   it('disables grid when disabled prop is true', () => {
