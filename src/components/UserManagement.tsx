@@ -14,25 +14,21 @@ import {
   EyeOff
 } from 'lucide-react';
 
-import { supabase } from '../lib/supabase';
-
-// Point to the backend server
-const API_BASE = 'http://localhost:3001';
-
 interface User {
-  id: string;
+  id: number;
   email: string;
   created_at: string;
   last_login: string | null;
 }
 
 interface LoginUser {
-  id: string;
+  id: number;
   email: string;
   created_at: string;
   last_login: string;
 }
 
+const API_BASE = 'http://localhost:3001/api';
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
@@ -41,12 +37,7 @@ export default function UserManagement() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   // Form states
-  const [registerForm, setRegisterForm] = useState({ 
-    email: '', 
-    password: '',
-    firstName: '',
-    lastName: ''
-  });
+  const [registerForm, setRegisterForm] = useState({ email: '', password: '' });
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -66,23 +57,21 @@ export default function UserManagement() {
 
   const checkServerHealth = async () => {
     try {
-      const { error } = await supabase.from('users').select('count').limit(1);
-      if (error) {
-        showMessage('error', 'Database connection failed');
+      const response = await fetch(`${API_BASE}/health`);
+      if (!response.ok) {
+        showMessage('error', 'Server connection failed');
       }
     } catch (error) {
-      showMessage('error', 'Cannot connect to database');
+      showMessage('error', 'Cannot connect to server. Make sure it\'s running on port 3001');
     }
   };
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/users`);
+      const response = await fetch(`${API_BASE}/users`);
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
-      } else {
-        showMessage('error', 'Failed to fetch users');
       }
     } catch (error) {
       showMessage('error', 'Failed to fetch users');
@@ -91,44 +80,26 @@ export default function UserManagement() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validation
-    if (!registerForm.email || !registerForm.password || !registerForm.firstName || !registerForm.lastName) {
-      showMessage('error', 'Please fill in all required fields');
-      return;
-    }
-
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE}/api/register`, {
+      const response = await fetch(`${API_BASE}/register`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: registerForm.email,
-          password: registerForm.password,
-          firstName: registerForm.firstName,
-          lastName: registerForm.lastName
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(registerForm)
       });
+
+      const data = await response.json();
 
       if (response.ok) {
         showMessage('success', 'Account created successfully!');
-        setRegisterForm({ email: '', password: '', firstName: '', lastName: '' });
+        setRegisterForm({ email: '', password: '' });
         fetchUsers();
       } else {
-        const errorData = await response.json();
-        if (response.status === 409) {
-          showMessage('error', 'Email already exists');
-        } else {
-          showMessage('error', errorData.message || 'Registration failed');
-        }
+        showMessage('error', data.error || 'Registration failed');
       }
     } catch (error) {
-      console.error('Registration error:', error);
-      showMessage('error', 'Registration failed');
+      showMessage('error', 'Network error during registration');
     } finally {
       setLoading(false);
     }
@@ -139,37 +110,25 @@ export default function UserManagement() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE}/api/login`, {
+      const response = await fetch(`${API_BASE}/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: loginForm.email,
-          password: loginForm.password
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(loginForm)
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        const userData = await response.json();
-        setCurrentUser({
-          id: userData.id,
-          email: userData.email,
-          created_at: userData.created_at,
-          last_login: new Date().toISOString()
-        });
-        
-        showMessage('success', `Welcome back, ${userData.email}!`);
+        setCurrentUser(data.user);
+        showMessage('success', `Welcome back, ${data.user.email}!`);
         setLoginForm({ email: '', password: '' });
         setActiveTab('dashboard');
         fetchUsers();
       } else {
-        showMessage('error', 'Invalid email or password');
+        showMessage('error', data.error || 'Login failed');
       }
-      
     } catch (error) {
-      console.error('Login error:', error);
-      showMessage('error', 'Login failed');
+      showMessage('error', 'Network error during login');
     } finally {
       setLoading(false);
     }
@@ -188,7 +147,7 @@ export default function UserManagement() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/api/users/reset`, {
+      const response = await fetch(`${API_BASE}/users/reset`, {
         method: 'DELETE'
       });
 
@@ -213,7 +172,7 @@ export default function UserManagement() {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/users/${userId}`, {
+      const response = await fetch(`${API_BASE}/users/${userId}`, {
         method: 'DELETE'
       });
 
@@ -340,34 +299,6 @@ export default function UserManagement() {
                 <form onSubmit={handleRegister} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      First Name
-                    </label>
-                    <input
-                      type="text"
-                      value={registerForm.firstName}
-                      onChange={(e) => setRegisterForm({ ...registerForm, firstName: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="John"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Last Name
-                    </label>
-                    <input
-                      type="text"
-                      value={registerForm.lastName}
-                      onChange={(e) => setRegisterForm({ ...registerForm, lastName: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Doe"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Email Address
                     </label>
                     <input
@@ -375,7 +306,6 @@ export default function UserManagement() {
                       value={registerForm.email}
                       onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      dir="ltr"
                       placeholder="user@example.com"
                       required
                     />
@@ -391,7 +321,6 @@ export default function UserManagement() {
                         value={registerForm.password}
                         onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-12"
-                        dir="ltr"
                         placeholder="abc123def"
                         pattern="[a-zA-Z0-9]{6,20}"
                         title="6-20 alphanumeric characters only"
@@ -441,7 +370,6 @@ export default function UserManagement() {
                       value={loginForm.email}
                       onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      dir="ltr"
                       placeholder="user@example.com"
                       required
                     />
@@ -457,7 +385,6 @@ export default function UserManagement() {
                         value={loginForm.password}
                         onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-12"
-                        dir="ltr"
                         placeholder="Enter your password"
                         required
                       />

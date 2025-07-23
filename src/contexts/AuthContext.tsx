@@ -85,33 +85,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const register = async (userData: RegisterData) => {
+    // Simple password validation for alphanumeric only
+    if (userData.password.length < 6 || userData.password.length > 20) {
+      throw new Error('הסיסמה חייבת להכיל בין 6 ל-20 תווים');
+    }
+    
+    if (!/^[a-zA-Z0-9]+$/.test(userData.password)) {
+      throw new Error('הסיסמה חייבת להכיל רק אותיות ומספרים');
+    }
+
+    const bcrypt = await import('bcryptjs');
+    const hashedPassword = await bcrypt.hash(userData.password, 12);
+
     try {
-      // Simple password validation for alphanumeric only
-      if (userData.password.length < 6 || userData.password.length > 20) {
-        throw new Error('הסיסמה חייבת להכיל בין 6 ל-20 תווים');
-      }
-      
-      if (!/^[a-zA-Z0-9]+$/.test(userData.password)) {
-        throw new Error('הסיסמה חייבת להכיל רק אותיות ומספרים');
-      }
-
-      // Email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(userData.email)) {
-        throw new Error('פורמט אימייל לא תקין');
-      }
-
-      const bcrypt = await import('bcryptjs');
-      const hashedPassword = await bcrypt.hash(userData.password, 12);
-
       // Insert user into our users table
       const { data, error } = await supabase
         .from('users')
         .insert([{
           email: userData.email,
           password_hash: hashedPassword,
-          first_name: userData.firstName || '',
-          last_name: userData.lastName || '',
+          first_name: userData.firstName,
+          last_name: userData.lastName,
           phone: userData.phone || null,
           role: 'client',
           email_verified: true,
@@ -123,7 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         console.error('Registration error:', error);
         if (error.code === '23505') { // Unique constraint violation
-          throw new Error('כתובת האימייל הזו כבר קיימת במערכת');
+          throw new Error('כתובת האימייל כבר קיימת במערכת');
         }
         throw new Error('שגיאה ביצירת החשבון');
       }
@@ -131,11 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(data);
     } catch (error: any) {
       console.error('Registration failed:', error);
-      // Re-throw the error with a more specific message if it's a network error
-      if (error.message && error.message.includes('fetch')) {
-        throw new Error('שגיאת חיבור לשרת. בדוק את החיבור לאינטרנט.');
-      }
-      throw new Error(error.message || 'שגיאה בהרשמה');
+      throw error;
     }
   };
 

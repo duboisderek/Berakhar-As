@@ -1,16 +1,3 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Force LTR for form inputs to prevent character reversal */
-input[type="email"],
-input[type="password"],
-input[type="text"] {
-  direction: ltr !important;
-  text-align: left !important;
-}
-
-/* Ensure proper font rendering for mixed content */
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-}
