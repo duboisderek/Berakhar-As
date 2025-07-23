@@ -85,19 +85,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const register = async (userData: RegisterData) => {
-    // Simple password validation for alphanumeric only
-    if (userData.password.length < 6 || userData.password.length > 20) {
-      throw new Error('הסיסמה חייבת להכיל בין 6 ל-20 תווים');
-    }
-    
-    if (!/^[a-zA-Z0-9]+$/.test(userData.password)) {
-      throw new Error('הסיסמה חייבת להכיל רק אותיות ומספרים');
-    }
-
-    const bcrypt = await import('bcryptjs');
-    const hashedPassword = await bcrypt.hash(userData.password, 12);
-
     try {
+      // Simple password validation for alphanumeric only
+      if (userData.password.length < 6 || userData.password.length > 20) {
+        throw new Error('Le mot de passe doit contenir entre 6 et 20 caractères');
+      }
+      
+      if (!/^[a-zA-Z0-9]+$/.test(userData.password)) {
+        throw new Error('Le mot de passe ne doit contenir que des lettres et des chiffres');
+      }
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(userData.email)) {
+        throw new Error('Format d\'email invalide');
+      }
+
+      const bcrypt = await import('bcryptjs');
+      const hashedPassword = await bcrypt.hash(userData.password, 12);
+
       // Insert user into our users table
       const { data, error } = await supabase
         .from('users')
@@ -117,15 +123,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         console.error('Registration error:', error);
         if (error.code === '23505') { // Unique constraint violation
-          throw new Error('כתובת האימייל כבר קיימת במערכת');
+          throw new Error('Cette adresse email existe déjà dans le système');
         }
-        throw new Error('שגיאה ביצירת החשבון');
+        throw new Error('Erreur lors de la création du compte');
       }
 
       setUser(data);
     } catch (error: any) {
       console.error('Registration failed:', error);
-      throw error;
+      // Re-throw the error with a more specific message if it's a network error
+      if (error.message && error.message.includes('fetch')) {
+        throw new Error('Erreur de connexion au serveur. Vérifiez votre connexion internet.');
+      }
+      throw new Error(error.message || 'Erreur lors de l\'inscription');
     }
   };
 
