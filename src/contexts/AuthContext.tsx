@@ -88,17 +88,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Simple password validation for alphanumeric only
       if (userData.password.length < 6 || userData.password.length > 20) {
-        throw new Error('Le mot de passe doit contenir entre 6 et 20 caractères');
+        throw new Error('הסיסמה חייבת להכיל בין 6 ל-20 תווים');
       }
       
       if (!/^[a-zA-Z0-9]+$/.test(userData.password)) {
-        throw new Error('Le mot de passe ne doit contenir que des lettres et des chiffres');
+        throw new Error('הסיסמה חייבת להכיל רק אותיות ומספרים');
       }
 
       // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(userData.email)) {
-        throw new Error('Format d\'email invalide');
+        throw new Error('פורמט אימייל לא תקין');
       }
 
       const bcrypt = await import('bcryptjs');
@@ -110,8 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .insert([{
           email: userData.email,
           password_hash: hashedPassword,
-          first_name: userData.firstName,
-          last_name: userData.lastName,
+          first_name: userData.firstName || '',
+          last_name: userData.lastName || '',
           phone: userData.phone || null,
           role: 'client',
           email_verified: true,
@@ -123,9 +123,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         console.error('Registration error:', error);
         if (error.code === '23505') { // Unique constraint violation
-          throw new Error('Cette adresse email existe déjà dans le système');
+          throw new Error('כתובת האימייל הזו כבר קיימת במערכת');
         }
-        throw new Error('Erreur lors de la création du compte');
+        throw new Error('שגיאה ביצירת החשבון');
       }
 
       setUser(data);
@@ -133,9 +133,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Registration failed:', error);
       // Re-throw the error with a more specific message if it's a network error
       if (error.message && error.message.includes('fetch')) {
-        throw new Error('Erreur de connexion au serveur. Vérifiez votre connexion internet.');
+        throw new Error('שגיאת חיבור לשרת. בדוק את החיבור לאינטרנט.');
       }
-      throw new Error(error.message || 'Erreur lors de l\'inscription');
+      throw new Error(error.message || 'שגיאה בהרשמה');
     }
   };
 

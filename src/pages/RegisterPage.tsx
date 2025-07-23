@@ -27,29 +27,29 @@ export default function RegisterPage() {
     
     // Validation
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-      toast.error('Veuillez remplir tous les champs obligatoires');
+      toast.error('יש למלא את כל השדות החובה');
       return;
     }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      toast.error('Adresse email invalide');
+      toast.error('כתובת אימייל לא תקינה');
       return;
     }
     
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Les mots de passe ne correspondent pas');
+      toast.error('הסיסמאות אינן תואמות');
       return;
     }
 
     if (formData.password.length < 6 || formData.password.length > 20) {
-      toast.error('Le mot de passe doit contenir entre 6 et 20 caractères');
+      toast.error('הסיסמה חייבת להכיל בין 6 ל-20 תווים');
       return;
     }
 
     if (!/^[a-zA-Z0-9]+$/.test(formData.password)) {
-      toast.error('Le mot de passe ne doit contenir que des lettres et des chiffres (pas de caractères spéciaux)');
+      toast.error('הסיסמה חייבת להכיל רק אותיות ומספרים (ללא תווים מיוחדים)');
       return;
     }
 
@@ -63,11 +63,11 @@ export default function RegisterPage() {
         password: formData.password
       });
       
-      toast.success('Inscription réussie ! Bienvenue !');
+      toast.success('הרשמה הושלמה בהצלחה! ברוכים הבאים!');
       navigate('/home');
     } catch (error: any) {
       console.error('Registration error:', error);
-      toast.error(error.message || 'Erreur lors de l\'inscription');
+      toast.error(error.message || 'שגיאה בהרשמה');
     } finally {
       setLoading(false);
     }
