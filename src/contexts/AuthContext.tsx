@@ -111,17 +111,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (error) throw error;
 
-    // Sign up with Supabase Auth
-    const { error: authError } = await supabase.auth.signUp({
-      email: userData.email,
-      password: userData.password
-    });
+    // Skip Supabase Auth signup for custom authentication
+    // const { error: authError } = await supabase.auth.signUp({
+    //   email: userData.email,
+    //   password: userData.password
+    // });
 
-    if (authError) {
-      // Clean up user record if auth signup fails
-      await supabase.from('users').delete().eq('id', data.id);
-      throw authError;
-    }
+    // if (authError) {
+    //   // Clean up user record if auth signup fails
+    //   await supabase.from('users').delete().eq('id', data.id);
+    //   throw authError;
+    // }
 
     setUser(data);
   };

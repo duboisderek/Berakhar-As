@@ -130,29 +130,29 @@ export class AuthService {
       
       if (!isValidPassword) {
         // Call failed login handler
-        await supabase.rpc('handle_failed_login', { user_email: email });
+        // await supabase.rpc('handle_failed_login', { user_email: email });
         return {
           success: false,
           error: 'אימייל או סיסמה שגויים'
         };
       }
 
-      // Sign in with Supabase Auth
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      // Skip Supabase Auth for custom users - just validate against our users table
+      // const { error: authError } = await supabase.auth.signInWithPassword({
+      //   email,
+      //   password
+      // });
 
-      if (authError) {
-        await supabase.rpc('handle_failed_login', { user_email: email });
-        return {
-          success: false,
-          error: 'שגיאה בהתחברות'
-        };
-      }
+      // if (authError) {
+      //   await supabase.rpc('handle_failed_login', { user_email: email });
+      //   return {
+      //     success: false,
+      //     error: 'שגיאה בהתחברות'
+      //   };
+      // }
 
       // Call successful login handler
-      await supabase.rpc('handle_successful_login', { user_email: email });
+      // await supabase.rpc('handle_successful_login', { user_email: email });
 
       return {
         success: true,
