@@ -14,6 +14,8 @@ import TicketsPage from './pages/TicketsPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminDeposits from './pages/AdminDeposits';
+import AdminWithdrawals from './pages/AdminWithdrawals';
+import AdminDraws from './pages/AdminDraws';
 import AdminUsers from './pages/AdminUsers';
 import PasswordResetPage from './pages/PasswordResetPage';
 
@@ -118,6 +120,16 @@ function AppRoutes() {
       <Route path="/admin/deposits" element={
         <ProtectedRoute>
           <AdminDeposits />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/withdrawals" element={
+        <ProtectedRoute>
+          <AdminWithdrawals />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/draws" element={
+        <ProtectedRoute>
+          <AdminDraws />
         </ProtectedRoute>
       } />
       <Route path="/admin/users" element={
