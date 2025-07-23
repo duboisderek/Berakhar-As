@@ -16,6 +16,8 @@ import {
 
 import { supabase } from '../lib/supabase';
 
+const API_BASE = 'http://localhost:3001/api';
+
 interface User {
   id: string;
   email: string;
@@ -78,6 +80,8 @@ export default function UserManagement() {
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
+      } else {
+        showMessage('error', 'Failed to fetch users');
       }
     } catch (error) {
       showMessage('error', 'Failed to fetch users');
@@ -96,34 +100,30 @@ export default function UserManagement() {
     setLoading(true);
 
     try {
-      // Use Supabase instead of the old API
-      const bcrypt = await import('bcryptjs');
-      const hashedPassword = await bcrypt.hash(registerForm.password, 12);
-
-      const { data, error } = await supabase
-        .from('users')
-        .insert([{
+      const response = await fetch(`${API_BASE}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           email: registerForm.email,
-          password_hash: hashedPassword,
-          first_name: registerForm.firstName,
-          last_name: registerForm.lastName,
-          role: 'client',
-          email_verified: true,
-          status: 'active'
-        }])
-        .select()
-        .single();
+          password: registerForm.password,
+          firstName: registerForm.firstName,
+          lastName: registerForm.lastName
+        })
+      });
 
-      if (error) {
-        if (error.code === '23505') {
-          showMessage('error', 'Email already exists');
-        } else {
-          showMessage('error', 'Registration failed: ' + error.message);
-        }
-      } else {
+      if (response.ok) {
         showMessage('success', 'Account created successfully!');
         setRegisterForm({ email: '', password: '', firstName: '', lastName: '' });
         fetchUsers();
+      } else {
+        const errorData = await response.json();
+        if (response.status === 409) {
+          showMessage('error', 'Email already exists');
+        } else {
+          showMessage('error', errorData.message || 'Registration failed');
+        }
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -138,44 +138,33 @@ export default function UserManagement() {
     setLoading(true);
 
     try {
-      // Get user from Supabase
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', loginForm.email)
-        .single();
-
-      if (userError || !userData) {
-        showMessage('error', 'Invalid email or password');
-        return;
-      }
-
-      // Verify password
-      const bcrypt = await import('bcryptjs');
-      const isValidPassword = await bcrypt.compare(loginForm.password, userData.password_hash);
-      
-      if (!isValidPassword) {
-        showMessage('error', 'Invalid email or password');
-        return;
-      }
-
-      // Update last login
-      await supabase
-        .from('users')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', userData.id);
-
-      setCurrentUser({
-        id: userData.id,
-        email: userData.email,
-        created_at: userData.created_at,
-        last_login: new Date().toISOString()
+      const response = await fetch(`${API_BASE}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: loginForm.email,
+          password: loginForm.password
+        })
       });
-      
-      showMessage('success', `Welcome back, ${userData.first_name || userData.email}!`);
-      setLoginForm({ email: '', password: '' });
-      setActiveTab('dashboard');
-      fetchUsers();
+
+      if (response.ok) {
+        const userData = await response.json();
+        setCurrentUser({
+          id: userData.id,
+          email: userData.email,
+          created_at: userData.created_at,
+          last_login: new Date().toISOString()
+        });
+        
+        showMessage('success', `Welcome back, ${userData.email}!`);
+        setLoginForm({ email: '', password: '' });
+        setActiveTab('dashboard');
+        fetchUsers();
+      } else {
+        showMessage('error', 'Invalid email or password');
+      }
       
     } catch (error) {
       console.error('Login error:', error);
@@ -198,18 +187,17 @@ export default function UserManagement() {
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all users
+      const response = await fetch(`${API_BASE}/users/reset`, {
+        method: 'DELETE'
+      });
 
-      if (!error) {
+      if (response.ok) {
         setUsers([]);
         setCurrentUser(null);
         showMessage('success', 'All users have been reset successfully');
         setActiveTab('register');
       } else {
-        showMessage('error', 'Failed to reset users: ' + error.message);
+        showMessage('error', 'Failed to reset users');
       }
     } catch (error) {
       showMessage('error', 'Network error during reset');
@@ -224,22 +212,21 @@ export default function UserManagement() {
     }
 
     try {
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', userId);
+      const response = await fetch(`${API_BASE}/users/${userId}`, {
+        method: 'DELETE'
+      });
 
-      if (!error) {
+      if (response.ok) {
         fetchUsers();
         showMessage('success', 'User deleted successfully');
         
         // If current user was deleted, log them out
-        if (currentUser && currentUser.id === userId.toString()) {
+        if (currentUser && currentUser.id === userId) {
           setCurrentUser(null);
           setActiveTab('login');
         }
       } else {
-        showMessage('error', 'Failed to delete user: ' + error.message);
+        showMessage('error', 'Failed to delete user');
       }
     } catch (error) {
       showMessage('error', 'Network error during deletion');
