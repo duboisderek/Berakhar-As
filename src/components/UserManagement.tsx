@@ -14,21 +14,22 @@ import {
   EyeOff
 } from 'lucide-react';
 
+import { supabase } from '../lib/supabase';
+
 interface User {
-  id: number;
+  id: string;
   email: string;
   created_at: string;
   last_login: string | null;
 }
 
 interface LoginUser {
-  id: number;
+  id: string;
   email: string;
   created_at: string;
   last_login: string;
 }
 
-const API_BASE = 'http://localhost:3001/api';
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
@@ -37,7 +38,12 @@ export default function UserManagement() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   // Form states
-  const [registerForm, setRegisterForm] = useState({ email: '', password: '' });
+  const [registerForm, setRegisterForm] = useState({ 
+    email: '', 
+    password: '',
+    firstName: '',
+    lastName: ''
+  });
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -57,12 +63,12 @@ export default function UserManagement() {
 
   const checkServerHealth = async () => {
     try {
-      const response = await fetch(`${API_BASE}/health`);
-      if (!response.ok) {
-        showMessage('error', 'Server connection failed');
+      const { error } = await supabase.from('users').select('count').limit(1);
+      if (error) {
+        showMessage('error', 'Database connection failed');
       }
     } catch (error) {
-      showMessage('error', 'Cannot connect to server. Make sure it\'s running on port 3001');
+      showMessage('error', 'Cannot connect to database');
     }
   };
 
@@ -80,26 +86,48 @@ export default function UserManagement() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (!registerForm.email || !registerForm.password || !registerForm.firstName || !registerForm.lastName) {
+      showMessage('error', 'Please fill in all required fields');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(registerForm)
-      });
+      // Use Supabase instead of the old API
+      const bcrypt = await import('bcryptjs');
+      const hashedPassword = await bcrypt.hash(registerForm.password, 12);
 
-      const data = await response.json();
+      const { data, error } = await supabase
+        .from('users')
+        .insert([{
+          email: registerForm.email,
+          password_hash: hashedPassword,
+          first_name: registerForm.firstName,
+          last_name: registerForm.lastName,
+          role: 'client',
+          email_verified: true,
+          status: 'active'
+        }])
+        .select()
+        .single();
 
-      if (response.ok) {
-        showMessage('success', 'Account created successfully!');
-        setRegisterForm({ email: '', password: '' });
-        fetchUsers();
+      if (error) {
+        if (error.code === '23505') {
+          showMessage('error', 'Email already exists');
+        } else {
+          showMessage('error', 'Registration failed: ' + error.message);
+        }
       } else {
-        showMessage('error', data.error || 'Registration failed');
+        showMessage('success', 'Account created successfully!');
+        setRegisterForm({ email: '', password: '', firstName: '', lastName: '' });
+        fetchUsers();
       }
     } catch (error) {
-      showMessage('error', 'Network error during registration');
+      console.error('Registration error:', error);
+      showMessage('error', 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -110,25 +138,48 @@ export default function UserManagement() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginForm)
-      });
+      // Get user from Supabase
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', loginForm.email)
+        .single();
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setCurrentUser(data.user);
-        showMessage('success', `Welcome back, ${data.user.email}!`);
-        setLoginForm({ email: '', password: '' });
-        setActiveTab('dashboard');
-        fetchUsers();
-      } else {
-        showMessage('error', data.error || 'Login failed');
+      if (userError || !userData) {
+        showMessage('error', 'Invalid email or password');
+        return;
       }
+
+      // Verify password
+      const bcrypt = await import('bcryptjs');
+      const isValidPassword = await bcrypt.compare(loginForm.password, userData.password_hash);
+      
+      if (!isValidPassword) {
+        showMessage('error', 'Invalid email or password');
+        return;
+      }
+
+      // Update last login
+      await supabase
+        .from('users')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', userData.id);
+
+      setCurrentUser({
+        id: userData.id,
+        email: userData.email,
+        created_at: userData.created_at,
+        last_login: new Date().toISOString()
+      });
+      
+      showMessage('success', `Welcome back, ${userData.first_name || userData.email}!`);
+      setLoginForm({ email: '', password: '' });
+      setActiveTab('dashboard');
+      fetchUsers();
+      
     } catch (error) {
-      showMessage('error', 'Network error during login');
+      console.error('Login error:', error);
+      showMessage('error', 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -147,17 +198,18 @@ export default function UserManagement() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/users/reset`, {
-        method: 'DELETE'
-      });
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all users
 
-      if (response.ok) {
+      if (!error) {
         setUsers([]);
         setCurrentUser(null);
         showMessage('success', 'All users have been reset successfully');
         setActiveTab('register');
       } else {
-        showMessage('error', 'Failed to reset users');
+        showMessage('error', 'Failed to reset users: ' + error.message);
       }
     } catch (error) {
       showMessage('error', 'Network error during reset');
@@ -172,21 +224,22 @@ export default function UserManagement() {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/users/${userId}`, {
-        method: 'DELETE'
-      });
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', userId);
 
-      if (response.ok) {
+      if (!error) {
         fetchUsers();
         showMessage('success', 'User deleted successfully');
         
         // If current user was deleted, log them out
-        if (currentUser && currentUser.id === userId) {
+        if (currentUser && currentUser.id === userId.toString()) {
           setCurrentUser(null);
           setActiveTab('login');
         }
       } else {
-        showMessage('error', 'Failed to delete user');
+        showMessage('error', 'Failed to delete user: ' + error.message);
       }
     } catch (error) {
       showMessage('error', 'Network error during deletion');
@@ -297,6 +350,34 @@ export default function UserManagement() {
                 </h2>
                 
                 <form onSubmit={handleRegister} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      value={registerForm.firstName}
+                      onChange={(e) => setRegisterForm({ ...registerForm, firstName: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="John"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      value={registerForm.lastName}
+                      onChange={(e) => setRegisterForm({ ...registerForm, lastName: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Doe"
+                      required
+                    />
+                  </div>
+                  
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Email Address
