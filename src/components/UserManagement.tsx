@@ -76,7 +76,7 @@ export default function UserManagement() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${API_BASE}/users`);
+      const response = await fetch(`${API_BASE}/api/users`);
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
@@ -100,7 +100,7 @@ export default function UserManagement() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE}/register`, {
+      const response = await fetch(`${API_BASE}/api/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -138,7 +138,7 @@ export default function UserManagement() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE}/login`, {
+      const response = await fetch(`${API_BASE}/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -187,7 +187,7 @@ export default function UserManagement() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/users/reset`, {
+      const response = await fetch(`${API_BASE}/api/users/reset`, {
         method: 'DELETE'
       });
 
@@ -212,7 +212,7 @@ export default function UserManagement() {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/users/${userId}`, {
+      const response = await fetch(`${API_BASE}/api/users/${userId}`, {
         method: 'DELETE'
       });
 
