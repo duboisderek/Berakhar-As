@@ -306,6 +306,7 @@ export default function UserManagement() {
                       value={registerForm.email}
                       onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      dir="ltr"
                       placeholder="user@example.com"
                       required
                     />
@@ -321,6 +322,7 @@ export default function UserManagement() {
                         value={registerForm.password}
                         onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-12"
+                        dir="ltr"
                         placeholder="abc123def"
                         pattern="[a-zA-Z0-9]{6,20}"
                         title="6-20 alphanumeric characters only"
@@ -370,6 +372,7 @@ export default function UserManagement() {
                       value={loginForm.email}
                       onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      dir="ltr"
                       placeholder="user@example.com"
                       required
                     />
@@ -385,6 +388,7 @@ export default function UserManagement() {
                         value={loginForm.password}
                         onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-12"
+                        dir="ltr"
                         placeholder="Enter your password"
                         required
                       />
