@@ -31,24 +31,13 @@ export default function RegisterPage() {
       return;
     }
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      toast.error('כתובת אימייל לא תקינה');
-      return;
-    }
     if (formData.password !== formData.confirmPassword) {
       toast.error('הסיסמאות אינן תואמות');
       return;
     }
 
-    if (formData.password.length < 6 || formData.password.length > 20) {
-      toast.error('הסיסמה חייבת להכיל בין 6 ל-20 תווים');
-      return;
-    }
-
-    if (!/^[a-zA-Z0-9]+$/.test(formData.password)) {
-      toast.error('הסיסמה חייבת להכיל רק אותיות ומספרים (ללא תווים מיוחדים)');
+    if (formData.password.length < 6) {
+      toast.error('הסיסמה חייבת להכיל לפחות 6 תווים');
       return;
     }
 
@@ -65,7 +54,6 @@ export default function RegisterPage() {
       toast.success('נרשמת בהצלחה! ברוך הבא!');
       navigate('/home');
     } catch (error: any) {
-      console.error('Registration error:', error);
       toast.error(error.message || 'שגיאה בהרשמה');
     } finally {
       setLoading(false);
@@ -253,14 +241,14 @@ export default function RegisterPage() {
 
           <motion.button
             type="submit"
-            disabled={loading || !formData.password || formData.password.length < 6 || formData.password.length > 20 || !/^[a-zA-Z0-9]+$/.test(formData.password)}
+            disabled={loading || (passwordStrength && !passwordStrength.isValid)}
             className={`w-full py-3 rounded-lg font-bold text-white transition-all duration-200 flex items-center justify-center gap-2 ${
-              loading || !formData.password || formData.password.length < 6 || formData.password.length > 20 || !/^[a-zA-Z0-9]+$/.test(formData.password)
+              loading || (passwordStrength && !passwordStrength.isValid)
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-xl'
             }`}
-            whileHover={loading || !formData.password || formData.password.length < 6 || formData.password.length > 20 || !/^[a-zA-Z0-9]+$/.test(formData.password) ? {} : { scale: 1.02 }}
-            whileTap={loading || !formData.password || formData.password.length < 6 || formData.password.length > 20 || !/^[a-zA-Z0-9]+$/.test(formData.password) ? {} : { scale: 0.98 }}
+            whileHover={loading || (passwordStrength && !passwordStrength.isValid) ? {} : { scale: 1.02 }}
+            whileTap={loading || (passwordStrength && !passwordStrength.isValid) ? {} : { scale: 0.98 }}
           >
             {loading ? (
               <>

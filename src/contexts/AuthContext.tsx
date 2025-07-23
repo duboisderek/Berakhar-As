@@ -85,48 +85,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const register = async (userData: RegisterData) => {
-    // Simple password validation for alphanumeric only
-    if (userData.password.length < 6 || userData.password.length > 20) {
-      throw new Error('הסיסמה חייבת להכיל בין 6 ל-20 תווים');
-    }
-    
-    if (!/^[a-zA-Z0-9]+$/.test(userData.password)) {
-      throw new Error('הסיסמה חייבת להכיל רק אותיות ומספרים');
+    // Validate password strength
+    const passwordStrength = AuthService.validatePasswordStrength(userData.password);
+    if (!passwordStrength.isValid) {
+      throw new Error(`הסיסמה אינה עומדת בדרישות האבטחה: ${passwordStrength.feedback.join(', ')}`);
     }
 
     const bcrypt = await import('bcryptjs');
     const hashedPassword = await bcrypt.hash(userData.password, 12);
 
-    try {
-      // Insert user into our users table
-      const { data, error } = await supabase
-        .from('users')
-        .insert([{
-          email: userData.email,
-          password_hash: hashedPassword,
-          first_name: userData.firstName,
-          last_name: userData.lastName,
-          phone: userData.phone || null,
-          role: 'client',
-          email_verified: true,
-          status: 'active'
-        }])
-        .select()
-        .single();
+    // Insert user into our users table
+    const { data, error } = await supabase
+      .from('users')
+      .insert([{
+        email: userData.email,
+        password_hash: hashedPassword,
+        first_name: userData.firstName,
+        last_name: userData.lastName,
+        phone: userData.phone,
+        role: 'client',
+        email_verified: true // Auto-verify for now, can be changed to false for email verification
+      }])
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Registration error:', error);
-        if (error.code === '23505') { // Unique constraint violation
-          throw new Error('כתובת האימייל כבר קיימת במערכת');
-        }
-        throw new Error('שגיאה ביצירת החשבון');
-      }
+    if (error) throw error;
 
-      setUser(data);
-    } catch (error: any) {
-      console.error('Registration failed:', error);
-      throw error;
-    }
+    // Skip Supabase Auth signup for custom authentication
+    // const { error: authError } = await supabase.auth.signUp({
+    //   email: userData.email,
+    //   password: userData.password
+    // });
+
+    // if (authError) {
+    //   // Clean up user record if auth signup fails
+    //   await supabase.from('users').delete().eq('id', data.id);
+    //   throw authError;
+    // }
+
+    setUser(data);
   };
 
   const login = async (email: string, password: string, rememberMe: boolean = false): Promise<LoginAttemptResult> => {
