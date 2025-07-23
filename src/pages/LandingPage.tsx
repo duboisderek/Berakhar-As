@@ -38,8 +38,8 @@ export default function LandingPage() {
   const cryptos = [
     { icon: Bitcoin, name: 'Bitcoin', symbol: 'BTC', color: 'text-orange-500' },
     { icon: Coins, name: 'Ethereum', symbol: 'ETH', color: 'text-blue-500' },
-    { icon: DollarSign, name: 'USDT ERC-20', symbol: 'USDT', color: 'text-green-500' },
-    { icon: DollarSign, name: 'USDT TRC-20', symbol: 'USDT', color: 'text-green-600' },
+    { icon: DollarSign, name: 'USDT ERC-20', symbol: 'USDT_ERC20', color: 'text-green-500' },
+    { icon: DollarSign, name: 'USDT TRC-20', symbol: 'USDT_TRC20', color: 'text-green-600' },
   ];
 
   const steps = [
@@ -188,7 +188,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {cryptos.map((crypto, index) => (
               <motion.div
-                key={crypto.symbol}
+                key={`${crypto.symbol}-${index}`}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -196,7 +196,7 @@ export default function LandingPage() {
               >
                 <crypto.icon className={`w-12 h-12 mx-auto mb-4 ${crypto.color}`} />
                 <h3 className="font-bold text-white mb-1">{crypto.name}</h3>
-                <p className="text-blue-200">{crypto.symbol}</p>
+                <p className="text-blue-200">{crypto.symbol.replace('_', ' ')}</p>
               </motion.div>
             ))}
           </div>
