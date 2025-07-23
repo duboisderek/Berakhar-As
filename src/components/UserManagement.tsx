@@ -16,7 +16,8 @@ import {
 
 import { supabase } from '../lib/supabase';
 
-const API_BASE = 'http://localhost:3001';
+// Use relative URL to avoid mixed content issues
+const API_BASE = '';
 
 interface User {
   id: string;
