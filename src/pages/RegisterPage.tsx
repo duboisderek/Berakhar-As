@@ -31,13 +31,24 @@ export default function RegisterPage() {
       return;
     }
 
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error('כתובת אימייל לא תקינה');
+      return;
+    }
     if (formData.password !== formData.confirmPassword) {
       toast.error('הסיסמאות אינן תואמות');
       return;
     }
 
-    if (formData.password.length < 6) {
-      toast.error('הסיסמה חייבת להכיל לפחות 6 תווים');
+    if (formData.password.length < 6 || formData.password.length > 20) {
+      toast.error('הסיסמה חייבת להכיל בין 6 ל-20 תווים');
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9]+$/.test(formData.password)) {
+      toast.error('הסיסמה חייבת להכיל רק אותיות ומספרים (ללא תווים מיוחדים)');
       return;
     }
 
@@ -54,6 +65,7 @@ export default function RegisterPage() {
       toast.success('נרשמת בהצלחה! ברוך הבא!');
       navigate('/home');
     } catch (error: any) {
+      console.error('Registration error:', error);
       toast.error(error.message || 'שגיאה בהרשמה');
     } finally {
       setLoading(false);
