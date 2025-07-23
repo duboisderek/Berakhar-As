@@ -21,6 +21,11 @@ describe('LotteryGrid', () => {
     for (let i = 1; i <= 37; i++) {
       expect(screen.getByText(i.toString())).toBeInTheDocument();
     }
+
+    // Check for the selection text using a function matcher
+    expect(screen.getByText((content, element) => {
+      return element?.textContent === 'נותרו לבחירה: 6 מספרים';
+    })).toBeInTheDocument();
   });
 
   it('allows selecting up to 6 numbers', () => {
@@ -39,8 +44,10 @@ describe('LotteryGrid', () => {
     // Try to select 7th number - should show error
     fireEvent.click(screen.getByText('7'));
     
-    // Should still only have 6 selected
-    expect(screen.getByText(/נותרו לבחירה: \d+ מספרים/)).toBeInTheDocument();
+    // Should still only have 6 selected (0 remaining)
+    expect(screen.getByText((content, element) => {
+      return element?.textContent === 'נותרו לבחירה: 0 מספרים';
+    })).toBeInTheDocument();
   });
 
   it('prevents purchase with insufficient balance', () => {
@@ -97,12 +104,18 @@ describe('LotteryGrid', () => {
     fireEvent.click(screen.getByText('1'));
     fireEvent.click(screen.getByText('2'));
     
-    expect(screen.getByText(/נותרו לבחירה: \d+ מספרים/)).toBeInTheDocument();
+    // Check that 4 numbers remain to be selected
+    expect(screen.getByText((content, element) => {
+      return element?.textContent === 'נותרו לבחירה: 4 מספרים';
+    })).toBeInTheDocument();
 
     // Clear selection
     fireEvent.click(screen.getByText('נקה בחירה'));
     
-    expect(screen.getByText(/נותרו לבחירה: \d+ מספרים/)).toBeInTheDocument();
+    // Check that all 6 numbers are available again
+    expect(screen.getByText((content, element) => {
+      return element?.textContent === 'נותרו לבחירה: 6 מספרים';
+    })).toBeInTheDocument();
   });
 
   it('disables grid when disabled prop is true', () => {
