@@ -253,14 +253,14 @@ export default function RegisterPage() {
 
           <motion.button
             type="submit"
-            disabled={loading || (passwordStrength && !passwordStrength.isValid)}
+            disabled={loading || !formData.password || formData.password.length < 6 || formData.password.length > 20 || !/^[a-zA-Z0-9]+$/.test(formData.password)}
             className={`w-full py-3 rounded-lg font-bold text-white transition-all duration-200 flex items-center justify-center gap-2 ${
-              loading || (passwordStrength && !passwordStrength.isValid)
+              loading || !formData.password || formData.password.length < 6 || formData.password.length > 20 || !/^[a-zA-Z0-9]+$/.test(formData.password)
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-xl'
             }`}
-            whileHover={loading || (passwordStrength && !passwordStrength.isValid) ? {} : { scale: 1.02 }}
-            whileTap={loading || (passwordStrength && !passwordStrength.isValid) ? {} : { scale: 0.98 }}
+            whileHover={loading || !formData.password || formData.password.length < 6 || formData.password.length > 20 || !/^[a-zA-Z0-9]+$/.test(formData.password) ? {} : { scale: 1.02 }}
+            whileTap={loading || !formData.password || formData.password.length < 6 || formData.password.length > 20 || !/^[a-zA-Z0-9]+$/.test(formData.password) ? {} : { scale: 0.98 }}
           >
             {loading ? (
               <>
