@@ -18,6 +18,7 @@ import AdminWithdrawals from './pages/AdminWithdrawals';
 import AdminDraws from './pages/AdminDraws';
 import AdminUsers from './pages/AdminUsers';
 import PasswordResetPage from './pages/PasswordResetPage';
+import SystemStatus from './pages/SystemStatus';
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -135,6 +136,11 @@ function AppRoutes() {
       <Route path="/admin/users" element={
         <ProtectedRoute>
           <AdminUsers />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/system-status" element={
+        <ProtectedRoute>
+          <SystemStatus />
         </ProtectedRoute>
       } />
       
