@@ -12,6 +12,9 @@ import DepositPage from './pages/DepositPage';
 import WithdrawPage from './pages/WithdrawPage';
 import TicketsPage from './pages/TicketsPage';
 import ProfilePage from './pages/ProfilePage';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminDeposits from './pages/AdminDeposits';
+import AdminUsers from './pages/AdminUsers';
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -97,6 +100,23 @@ function AppRoutes() {
       <Route path="/profile" element={
         <ProtectedRoute>
           <ProfilePage />
+        </ProtectedRoute>
+      } />
+      
+      {/* Admin Routes */}
+      <Route path="/admin" element={
+        <ProtectedRoute>
+          <AdminDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/deposits" element={
+        <ProtectedRoute>
+          <AdminDeposits />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/users" element={
+        <ProtectedRoute>
+          <AdminUsers />
         </ProtectedRoute>
       } />
       

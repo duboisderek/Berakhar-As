@@ -8,7 +8,8 @@ import {
   Clock, 
   Ticket,
   LogOut,
-  User
+  User,
+  Settings
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -230,6 +231,15 @@ export default function HomePage() {
       <header className="bg-black/20 backdrop-blur-sm border-b border-white/20 p-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
+            {(user?.role === 'admin' || user?.role === 'root') && (
+              <Link
+                to="/admin"
+                className="flex items-center gap-2 bg-purple-500/20 text-purple-100 px-4 py-2 rounded-lg hover:bg-purple-500/30 transition-all"
+              >
+                <Settings className="w-4 h-4" />
+                פאנל ניהול
+              </Link>
+            )}
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 bg-red-500/20 text-red-100 px-4 py-2 rounded-lg hover:bg-red-500/30 transition-all"
