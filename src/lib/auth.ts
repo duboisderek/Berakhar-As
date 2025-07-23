@@ -23,7 +23,7 @@ export class AuthService {
         .from('users')
         .select('account_locked_until')
         .eq('email', email)
-        .single();
+        .maybeSingle();
 
       if (error || !data) return false;
 
@@ -106,7 +106,7 @@ export class AuthService {
         .from('users')
         .select('*')
         .eq('email', email)
-        .single();
+        .maybeSingle();
 
       if (userError || !userRecord) {
         // Call failed login handler
