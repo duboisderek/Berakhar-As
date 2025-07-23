@@ -4,6 +4,7 @@ import { UserPlus, Eye, EyeOff, Sparkles, ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
+import type { PasswordStrength } from '../lib/auth';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -17,7 +18,8 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const [passwordStrength, setPasswordStrength] = useState<PasswordStrength | null>(null);
+  const { register, validatePasswordStrength } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,10 +61,17 @@ export default function RegisterPage() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+    
+    // Check password strength in real-time
+    if (name === 'password') {
+      const strength = validatePasswordStrength(value);
+      setPasswordStrength(strength);
+    }
   };
 
   return (
@@ -170,7 +179,41 @@ export default function RegisterPage() {
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
-          </div>
+          
+          {/* Password Strength Indicator */}
+          {passwordStrength && formData.password && (
+            <div className="mt-2">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="flex-1 bg-gray-200 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      passwordStrength.score <= 2 ? 'bg-red-500' :
+                      passwordStrength.score <= 3 ? 'bg-yellow-500' :
+                      'bg-green-500'
+                    }`}
+                    style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                  />
+                </div>
+                <span className={`text-xs font-medium ${
+                  passwordStrength.score <= 2 ? 'text-red-600' :
+                  passwordStrength.score <= 3 ? 'text-yellow-600' :
+                  'text-green-600'
+                }`}>
+                  {passwordStrength.score <= 2 ? 'חלשה' :
+                   passwordStrength.score <= 3 ? 'בינונית' :
+                   'חזקה'}
+                </span>
+              </div>
+              {passwordStrength.feedback.length > 0 && (
+                <ul className="text-xs text-red-600 space-y-1">
+                  {passwordStrength.feedback.map((feedback, index) => (
+                    <li key={index}>• {feedback}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -198,14 +241,14 @@ export default function RegisterPage() {
 
           <motion.button
             type="submit"
-            disabled={loading}
+            disabled={loading || (passwordStrength && !passwordStrength.isValid)}
             className={`w-full py-3 rounded-lg font-bold text-white transition-all duration-200 flex items-center justify-center gap-2 ${
-              loading
+              loading || (passwordStrength && !passwordStrength.isValid)
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-xl'
             }`}
-            whileHover={loading ? {} : { scale: 1.02 }}
-            whileTap={loading ? {} : { scale: 0.98 }}
+            whileHover={loading || (passwordStrength && !passwordStrength.isValid) ? {} : { scale: 1.02 }}
+            whileTap={loading || (passwordStrength && !passwordStrength.isValid) ? {} : { scale: 0.98 }}
           >
             {loading ? (
               <>

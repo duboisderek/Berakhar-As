@@ -9,7 +9,10 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [accountLocked, setAccountLocked] = useState(false);
+  const [lockoutTime, setLockoutTime] = useState<Date | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -22,9 +25,20 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      await login(email, password);
-      toast.success('התחברת בהצלחה!');
-      navigate('/home');
+      const result = await login(email, password, rememberMe);
+      
+      if (result.success) {
+        toast.success('התחברת בהצלחה!');
+        navigate('/home');
+      } else {
+        if (result.accountLocked) {
+          setAccountLocked(true);
+          setLockoutTime(result.lockoutTime || null);
+          toast.error(result.error || 'החשבון נעול זמנית');
+        } else {
+          toast.error(result.error || 'שגיאה בהתחברות');
+        }
+      }
     } catch (error: any) {
       toast.error(error.message || 'שגיאה בהתחברות');
     } finally {
@@ -92,16 +106,45 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {/* Account Locked Warning */}
+          {accountLocked && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <h4 className="font-semibold text-red-900 mb-2">⚠️ החשבון נעול זמנית</h4>
+              <p className="text-red-800 text-sm mb-2">
+                החשבון נעול עקב ניסיונות התחברות כושלים מרובים.
+              </p>
+              {lockoutTime && (
+                <p className="text-red-700 text-sm">
+                  הנעילה תסתיים ב: {lockoutTime.toLocaleString('he-IL')}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Remember Me */}
+          <div className="flex items-center mb-6">
+            <input
+              type="checkbox"
+              id="rememberMe"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="rememberMe" className="mr-2 block text-sm text-gray-700">
+              זכור אותי למשך 30 יום
+            </label>
+          </div>
+
           <motion.button
             type="submit"
-            disabled={loading}
+            disabled={loading || accountLocked}
             className={`w-full py-3 rounded-lg font-bold text-white transition-all duration-200 flex items-center justify-center gap-2 ${
-              loading
+              loading || accountLocked
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl'
             }`}
-            whileHover={loading ? {} : { scale: 1.02 }}
-            whileTap={loading ? {} : { scale: 0.98 }}
+            whileHover={loading || accountLocked ? {} : { scale: 1.02 }}
+            whileTap={loading || accountLocked ? {} : { scale: 0.98 }}
           >
             {loading ? (
               <>
@@ -121,7 +164,7 @@ export default function LoginPage() {
         <div className="mt-6 space-y-4">
           <div className="text-center">
             <Link 
-              to="/forgot-password" 
+              to="/reset-password" 
               className="text-blue-600 hover:text-blue-700 text-sm font-medium"
             >
               שכחת סיסמה?

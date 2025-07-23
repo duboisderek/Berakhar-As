@@ -15,6 +15,7 @@ import ProfilePage from './pages/ProfilePage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminDeposits from './pages/AdminDeposits';
 import AdminUsers from './pages/AdminUsers';
+import PasswordResetPage from './pages/PasswordResetPage';
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -73,6 +74,11 @@ function AppRoutes() {
       <Route path="/register" element={
         <PublicRoute>
           <RegisterPage />
+        </PublicRoute>
+      } />
+      <Route path="/reset-password" element={
+        <PublicRoute>
+          <PasswordResetPage />
         </PublicRoute>
       } />
       
