@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Users, Search, Edit, Ban, CheckCircle, DollarSign } from 'lucide-react';
+import { ArrowLeft, Users, Search, Edit, Ban, CheckCircle, DollarSign, Eye, Trash2, UserX, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -17,6 +17,9 @@ interface User {
   status: string;
   last_login: string | null;
   created_at: string;
+  email_verified: boolean;
+  failed_login_attempts: number;
+  account_locked_until: string | null;
 }
 
 export default function AdminUsers() {
@@ -27,6 +30,8 @@ export default function AdminUsers() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [balanceAmount, setBalanceAmount] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showUserDetails, setShowUserDetails] = useState<User | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<User | null>(null);
 
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'root') {
@@ -73,6 +78,109 @@ export default function AdminUsers() {
     }
   };
 
+  const handleDeleteUser = async (userId: string) => {
+    setActionLoading(userId);
+    try {
+      // First delete related records
+      await supabase.from('tickets').delete().eq('user_id', userId);
+      await supabase.from('crypto_deposits').delete().eq('user_id', userId);
+      await supabase.from('crypto_withdrawals').delete().eq('user_id', userId);
+      await supabase.from('transactions').delete().eq('user_id', userId);
+      await supabase.from('user_sessions').delete().eq('user_id', userId);
+      
+      // Then delete the user
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast.success('המשתמש נמחק בהצלחה');
+      fetchUsers();
+      setShowDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error('שגיאה במחיקת המשתמש');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUnlockAccount = async (userId: string) => {
+    setActionLoading(userId);
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ 
+          account_locked_until: null,
+          failed_login_attempts: 0
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast.success('החשבון שוחרר מנעילה');
+      fetchUsers();
+    } catch (error) {
+      console.error('Error unlocking account:', error);
+      toast.error('שגיאה בשחרור החשבון');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleResetPassword = async (userId: string) => {
+    setActionLoading(userId);
+    try {
+      const bcrypt = await import('bcryptjs');
+      const tempPassword = Math.random().toString(36).slice(-8);
+      const hashedPassword = await bcrypt.hash(tempPassword, 12);
+
+      const { error } = await supabase
+        .from('users')
+        .update({ 
+          password_hash: hashedPassword,
+          last_password_change: new Date().toISOString()
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast.success(`סיסמה זמנית: ${tempPassword}`);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast.error('שגיאה באיפוס הסיסמה');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleChangeRole = async (userId: string, newRole: 'client' | 'admin') => {
+    if (user?.role !== 'root') {
+      toast.error('רק מנהל ראשי יכול לשנות תפקידים');
+      return;
+    }
+
+    setActionLoading(userId);
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ role: newRole })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast.success(`תפקיד המשתמש עודכן ל${newRole === 'admin' ? 'מנהל' : 'לקוח'}`);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error changing role:', error);
+      toast.error('שגיאה בשינוי התפקיד');
+    } finally {
+      setActionLoading(null);
+    }
+  };
   const handleAdjustBalance = async (userId: string, amount: number, description: string) => {
     setActionLoading(userId);
     try {
@@ -141,6 +249,10 @@ export default function AdminUsers() {
     }
   };
 
+  const isAccountLocked = (user: User) => {
+    if (!user.account_locked_until) return false;
+    return new Date(user.account_locked_until) > new Date();
+  };
   if (!user || (user.role !== 'admin' && user.role !== 'root')) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-900 via-red-800 to-red-900 flex items-center justify-center">
@@ -235,6 +347,12 @@ export default function AdminUsers() {
                         <div>
                           <div className="font-semibold text-gray-900">
                             {u.first_name} {u.last_name}
+                            {isAccountLocked(u) && (
+                              <span className="text-red-500 text-xs bg-red-100 px-2 py-1 rounded">נעול</span>
+                            )}
+                            {!u.email_verified && (
+                              <span className="text-yellow-600 text-xs bg-yellow-100 px-2 py-1 rounded">לא מאומת</span>
+                            )}
                           </div>
                           <div className="text-sm text-gray-600">{u.email}</div>
                           {u.phone && (
@@ -265,7 +383,14 @@ export default function AdminUsers() {
                         {new Date(u.created_at).toLocaleDateString('he-IL')}
                       </td>
                       <td className="py-4 px-4">
-                        <div className="flex gap-2">
+                        <div className="flex gap-1 flex-wrap">
+                          <button
+                            onClick={() => setShowUserDetails(u)}
+                            className="text-blue-600 hover:text-blue-700 p-1"
+                            title="פרטי משתמש"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
                           <button
                             onClick={() => setSelectedUser(u)}
                             className="text-blue-600 hover:text-blue-700 p-1"
@@ -273,6 +398,34 @@ export default function AdminUsers() {
                           >
                             <DollarSign className="w-4 h-4" />
                           </button>
+                          {isAccountLocked(u) && (
+                            <button
+                              onClick={() => handleUnlockAccount(u.id)}
+                              disabled={actionLoading === u.id}
+                              className="text-green-600 hover:text-green-700 p-1"
+                              title="שחרר נעילה"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleResetPassword(u.id)}
+                            disabled={actionLoading === u.id}
+                            className="text-orange-600 hover:text-orange-700 p-1"
+                            title="איפוס סיסמה"
+                          >
+                            <Shield className="w-4 h-4" />
+                          </button>
+                          {user?.role === 'root' && u.role !== 'root' && (
+                            <button
+                              onClick={() => handleChangeRole(u.id, u.role === 'admin' ? 'client' : 'admin')}
+                              disabled={actionLoading === u.id}
+                              className="text-purple-600 hover:text-purple-700 p-1"
+                              title={u.role === 'admin' ? 'הפוך ללקוח' : 'הפוך למנהל'}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          )}
                           {u.role === 'client' && (
                             <button
                               onClick={() => handleToggleUserStatus(u.id, u.status)}
@@ -287,6 +440,15 @@ export default function AdminUsers() {
                               {u.status === 'active' ? <Ban className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
                             </button>
                           )}
+                          {u.role === 'client' && (
+                            <button
+                              onClick={() => setShowDeleteConfirm(u)}
+                              className="text-red-600 hover:text-red-700 p-1"
+                              title="מחק משתמש"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </motion.tr>
@@ -298,6 +460,108 @@ export default function AdminUsers() {
         </motion.div>
       </div>
 
+      {/* User Details Modal */}
+      {showUserDetails && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto"
+          >
+            <h3 className="text-xl font-bold text-gray-900 mb-4">פרטי משתמש מלאים</h3>
+            
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">שם מלא</label>
+                <p className="text-gray-900">{showUserDetails.first_name} {showUserDetails.last_name}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">אימייל</label>
+                <p className="text-gray-900">{showUserDetails.email}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">טלפון</label>
+                <p className="text-gray-900">{showUserDetails.phone || 'לא צוין'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">תפקיד</label>
+                <p className="text-gray-900">{getRoleText(showUserDetails.role)}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">יתרה</label>
+                <p className="text-green-600 font-bold">₪{showUserDetails.balance_ils.toLocaleString()}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">סטטוס</label>
+                <p className="text-gray-900">{showUserDetails.status === 'active' ? 'פעיל' : 'מושעה'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">אימות אימייל</label>
+                <p className="text-gray-900">{showUserDetails.email_verified ? 'מאומת' : 'לא מאומת'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ניסיונות כושלים</label>
+                <p className="text-gray-900">{showUserDetails.failed_login_attempts}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">תאריך הצטרפות</label>
+                <p className="text-gray-900">{new Date(showUserDetails.created_at).toLocaleDateString('he-IL')}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">התחברות אחרונה</label>
+                <p className="text-gray-900">
+                  {showUserDetails.last_login 
+                    ? new Date(showUserDetails.last_login).toLocaleDateString('he-IL')
+                    : 'מעולם לא התחבר'
+                  }
+                </p>
+              </div>
+            </div>
+            
+            <button
+              onClick={() => setShowUserDetails(null)}
+              className="w-full bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+            >
+              סגור
+            </button>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl p-6 w-full max-w-md"
+          >
+            <h3 className="text-xl font-bold text-gray-900 mb-4">מחיקת משתמש</h3>
+            <p className="text-gray-600 mb-4">
+              האם אתה בטוח שברצונך למחוק את המשתמש {showDeleteConfirm.first_name} {showDeleteConfirm.last_name}?
+            </p>
+            <p className="text-red-600 text-sm mb-6">
+              ⚠️ פעולה זו תמחק את כל הנתונים של המשתמש ולא ניתן לבטלה!
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleDeleteUser(showDeleteConfirm.id)}
+                disabled={actionLoading === showDeleteConfirm.id}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {actionLoading === showDeleteConfirm.id ? 'מוחק...' : 'מחק משתמש'}
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+              >
+                בטל
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
       {/* Balance Adjustment Modal */}
       {selectedUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
