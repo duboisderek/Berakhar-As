@@ -84,23 +84,6 @@ export class AuthService {
   // Handle login attempt with security measures
   static async attemptLogin(email: string, password: string): Promise<LoginAttemptResult> {
     try {
-      // Check if account is locked
-      const isLocked = await this.isAccountLocked(email);
-      if (isLocked) {
-        const { data } = await supabase
-          .from('users')
-          .select('account_locked_until')
-          .eq('email', email)
-          .single();
-
-        return {
-          success: false,
-          error: 'החשבון נעול זמנית עקב ניסיונות התחברות כושלים',
-          accountLocked: true,
-          lockoutTime: data?.account_locked_until ? new Date(data.account_locked_until) : undefined
-        };
-      }
-
       // Get user record
       const { data: userRecord, error: userError } = await supabase
         .from('users')
@@ -115,28 +98,57 @@ export class AuthService {
         };
       }
 
-      // Skip email verification check for now
-      // if (!userRecord.email_verified) {
-      //   return {
-      //     success: false,
-      //     error: 'יש לאמת את כתובת האימייל לפני ההתחברות'
-      //   };
-      // }
+      // Check if account is locked
+      if (userRecord.account_locked_until) {
+        const lockoutTime = new Date(userRecord.account_locked_until);
+        if (lockoutTime > new Date()) {
+          return {
+            success: false,
+            error: 'החשבון נעול זמנית עקב ניסיונות התחברות כושלים',
+            accountLocked: true,
+            lockoutTime
+          };
+        }
+      }
 
       // Verify password
+      const bcrypt = await import('bcryptjs');
       const isValidPassword = await bcrypt.compare(password, userRecord.password_hash);
       
       if (!isValidPassword) {
+        // Increment failed login attempts
+        const newFailedAttempts = (userRecord.failed_login_attempts || 0) + 1;
+        
+        // Lock account after 5 failed attempts
+        const updateData: any = {
+          failed_login_attempts: newFailedAttempts
+        };
+        
+        if (newFailedAttempts >= 5) {
+          const lockUntil = new Date();
+          lockUntil.setMinutes(lockUntil.getMinutes() + 30); // Lock for 30 minutes
+          updateData.account_locked_until = lockUntil.toISOString();
+        }
+        
+        await supabase
+          .from('users')
+          .update(updateData)
+          .eq('id', userRecord.id);
+          
         return {
           success: false,
           error: 'אימייל או סיסמה שגויים'
         };
       }
 
-      // Update last login
+      // Reset failed attempts and update last login
       await supabase
         .from('users')
-        .update({ last_login: new Date().toISOString() })
+        .update({ 
+          last_login: new Date().toISOString(),
+          failed_login_attempts: 0,
+          account_locked_until: null
+        })
         .eq('id', userRecord.id);
 
       return {

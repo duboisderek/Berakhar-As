@@ -111,103 +111,103 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (error) throw error;
 
-    // Create Supabase Auth user for session management
-    const { error: authError } = await supabase.auth.signUp({
-      email: userData.email,
-      password: userData.password,
-      options: {
-        emailRedirectTo: undefined // Skip email confirmation
-      }
-    });
-
-    if (authError) {
-      // Clean up user record if auth signup fails
-      await supabase.from('users').delete().eq('id', data.id);
-      throw authError;
-    }
 
     setUser(data);
   };
 
   const login = async (email: string, password: string, rememberMe: boolean = false): Promise<LoginAttemptResult> => {
     try {
-      // First try Supabase Auth login
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      // Get user from database
+      const { data: userRecord, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
 
-      if (authError) {
-        // Fallback to custom authentication
-        const result = await AuthService.attemptLogin(email, password);
-        
-        if (result.success && result.user) {
-          // Create session if remember me is enabled
-          if (rememberMe) {
-            await AuthService.createSession(result.user.id, true);
-          }
-          
-          setUser(result.user);
-          
-          // Log successful login
-          await AuthService.logAuditEvent(
-            result.user.id,
-            'login',
-            'user',
-            result.user.id
-          );
-        }
-        
-        return result;
-      }
-
-      // If Supabase auth succeeds, get user profile
-      if (authData.user) {
-        const { data: profile, error: profileError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('email', authData.user.email)
-          .single();
-
-        if (profileError || !profile) {
-          await supabase.auth.signOut();
-          return {
-            success: false,
-            error: 'פרופיל משתמש לא נמצא'
-          };
-        }
-
-        // Update last login
-        await supabase
-          .from('users')
-          .update({ last_login: new Date().toISOString() })
-          .eq('id', profile.id);
-
-        setUser(profile);
-        
-        // Log successful login
-        await AuthService.logAuditEvent(
-          profile.id,
-          'login',
-          'user',
-          profile.id
-        );
-
+      if (userError || !userRecord) {
         return {
-          success: true,
-          user: profile
+          success: false,
+          error: 'אימייל או סיסמה שגויים'
         };
       }
 
+      // Check if account is locked
+      if (userRecord.account_locked_until) {
+        const lockoutTime = new Date(userRecord.account_locked_until);
+        if (lockoutTime > new Date()) {
+          return {
+            success: false,
+            error: 'החשבון נעול זמנית עקב ניסיונות התחברות כושלים',
+            accountLocked: true,
+            lockoutTime
+          };
+        }
+      }
+
+      // Verify password
+      const bcrypt = await import('bcryptjs');
+      const isValidPassword = await bcrypt.compare(password, userRecord.password_hash);
+      
+      if (!isValidPassword) {
+        // Increment failed login attempts
+        const newFailedAttempts = (userRecord.failed_login_attempts || 0) + 1;
+        
+        const updateData: any = {
+          failed_login_attempts: newFailedAttempts
+        };
+        
+        if (newFailedAttempts >= 5) {
+          const lockUntil = new Date();
+          lockUntil.setMinutes(lockUntil.getMinutes() + 30);
+          updateData.account_locked_until = lockUntil.toISOString();
+        }
+        
+        await supabase
+          .from('users')
+          .update(updateData)
+          .eq('id', userRecord.id);
+          
+        return {
+          success: false,
+          error: 'אימייל או סיסמה שגויים'
+        };
+      }
+
+      // Reset failed attempts and update last login
+      await supabase
+        .from('users')
+        .update({ 
+          last_login: new Date().toISOString(),
+          failed_login_attempts: 0,
+          account_locked_until: null
+        })
+        .eq('id', userRecord.id);
+
+      // Create session if remember me is enabled
+      if (rememberMe) {
+        await AuthService.createSession(userRecord.id, true);
+      }
+      
+      setUser(userRecord);
+      
+      // Log successful login
+      await AuthService.logAuditEvent(
+        userRecord.id,
+        'login',
+        'user',
+        userRecord.id
+      );
+
       return {
-        success: false,
-        error: 'שגיאה בהתחברות'
+        success: true,
+        user: userRecord
       };
+        
     } catch (error) {
       console.error('Login error:', error);
       return {
         success: false,
-        error: 'שגיאה בהתחברות'
+        error: 'שגיאה בהתחברות - נסה שוב'
       };
     }
   };
