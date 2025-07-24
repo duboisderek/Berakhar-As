@@ -109,50 +109,35 @@ export class AuthService {
         .maybeSingle();
 
       if (userError || !userRecord) {
-        // Call failed login handler
-        await supabase.rpc('handle_failed_login', { user_email: email });
         return {
           success: false,
           error: 'אימייל או סיסמה שגויים'
         };
       }
 
-      // Check if email is verified (if verification is required)
-      if (!userRecord.email_verified) {
-        return {
-          success: false,
-          error: 'יש לאמת את כתובת האימייל לפני ההתחברות'
-        };
-      }
+      // Skip email verification check for now
+      // if (!userRecord.email_verified) {
+      //   return {
+      //     success: false,
+      //     error: 'יש לאמת את כתובת האימייל לפני ההתחברות'
+      //   };
+      // }
 
       // Verify password
       const isValidPassword = await bcrypt.compare(password, userRecord.password_hash);
       
       if (!isValidPassword) {
-        // Call failed login handler
-        // await supabase.rpc('handle_failed_login', { user_email: email });
         return {
           success: false,
           error: 'אימייל או סיסמה שגויים'
         };
       }
 
-      // Skip Supabase Auth for custom users - just validate against our users table
-      // const { error: authError } = await supabase.auth.signInWithPassword({
-      //   email,
-      //   password
-      // });
-
-      // if (authError) {
-      //   await supabase.rpc('handle_failed_login', { user_email: email });
-      //   return {
-      //     success: false,
-      //     error: 'שגיאה בהתחברות'
-      //   };
-      // }
-
-      // Call successful login handler
-      // await supabase.rpc('handle_successful_login', { user_email: email });
+      // Update last login
+      await supabase
+        .from('users')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', userRecord.id);
 
       return {
         success: true,
