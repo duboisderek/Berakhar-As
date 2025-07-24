@@ -211,26 +211,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     }
   };
-    
-    if (result.success && result.user) {
-      // Create session if remember me is enabled
-      if (rememberMe) {
-        await AuthService.createSession(result.user.id, true);
-      }
-      
-      setUser(result.user);
-      
-      // Log successful login
-      await AuthService.logAuditEvent(
-        result.user.id,
-        'login',
-        'user',
-        result.user.id
-      );
-    }
-    
-    return result;
-  };
 
   const logout = async () => {
     if (user) {
