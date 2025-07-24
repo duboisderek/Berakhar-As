@@ -40,6 +40,7 @@ export default function LoginPage() {
         }
       }
     } catch (error: any) {
+      console.error('Login error:', error);
       toast.error(error.message || 'שגיאה בהתחברות');
     } finally {
       setLoading(false);
