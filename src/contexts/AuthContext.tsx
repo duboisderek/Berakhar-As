@@ -111,23 +111,106 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (error) throw error;
 
-    // Skip Supabase Auth signup for custom authentication
-    // const { error: authError } = await supabase.auth.signUp({
-    //   email: userData.email,
-    //   password: userData.password
-    // });
+    // Create Supabase Auth user for session management
+    const { error: authError } = await supabase.auth.signUp({
+      email: userData.email,
+      password: userData.password,
+      options: {
+        emailRedirectTo: undefined // Skip email confirmation
+      }
+    });
 
-    // if (authError) {
-    //   // Clean up user record if auth signup fails
-    //   await supabase.from('users').delete().eq('id', data.id);
-    //   throw authError;
-    // }
+    if (authError) {
+      // Clean up user record if auth signup fails
+      await supabase.from('users').delete().eq('id', data.id);
+      throw authError;
+    }
 
     setUser(data);
   };
 
   const login = async (email: string, password: string, rememberMe: boolean = false): Promise<LoginAttemptResult> => {
-    const result = await AuthService.attemptLogin(email, password);
+    try {
+      // First try Supabase Auth login
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (authError) {
+        // Fallback to custom authentication
+        const result = await AuthService.attemptLogin(email, password);
+        
+        if (result.success && result.user) {
+          // Create session if remember me is enabled
+          if (rememberMe) {
+            await AuthService.createSession(result.user.id, true);
+          }
+          
+          setUser(result.user);
+          
+          // Log successful login
+          await AuthService.logAuditEvent(
+            result.user.id,
+            'login',
+            'user',
+            result.user.id
+          );
+        }
+        
+        return result;
+      }
+
+      // If Supabase auth succeeds, get user profile
+      if (authData.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', authData.user.email)
+          .single();
+
+        if (profileError || !profile) {
+          await supabase.auth.signOut();
+          return {
+            success: false,
+            error: 'פרופיל משתמש לא נמצא'
+          };
+        }
+
+        // Update last login
+        await supabase
+          .from('users')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', profile.id);
+
+        setUser(profile);
+        
+        // Log successful login
+        await AuthService.logAuditEvent(
+          profile.id,
+          'login',
+          'user',
+          profile.id
+        );
+
+        return {
+          success: true,
+          user: profile
+        };
+      }
+
+      return {
+        success: false,
+        error: 'שגיאה בהתחברות'
+      };
+    } catch (error) {
+      console.error('Login error:', error);
+      return {
+        success: false,
+        error: 'שגיאה בהתחברות'
+      };
+    }
+  };
     
     if (result.success && result.user) {
       // Create session if remember me is enabled
